@@ -1,0 +1,177 @@
+services:
+  # Kafka controller node
+  kafka-controller:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka-controller
+    container_name: kafka-controller
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-controller:9093'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT'
+      KAFKA_LISTENERS: 'CONTROLLER://:9093'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-controller-logs'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    volumes:
+      - kafka-controller-data:/var/lib/kafka/data
+    command: >
+      bash -c "
+        echo 'Formatting storage for controller...' &&
+        kafka-storage format -t $${CLUSTER_ID} -c /etc/kafka/kraft/server.properties &&
+        echo 'Starting Kafka controller...' &&
+        /etc/confluent/docker/run
+      "
+
+  # Broker 1
+  kafka-broker-1:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka-broker-1
+    container_name: kafka-broker-1
+    depends_on:
+      - kafka-controller
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: 'broker'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-controller:9093'
+      # Removed CONTROLLER from listeners for broker
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_LISTENERS: 'INTERNAL://:29092,EXTERNAL://:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka-broker-1:29092,EXTERNAL://localhost:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-broker-logs'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    volumes:
+      - kafka-broker-1-data:/var/lib/kafka/data
+    command: >
+      bash -c "
+        echo 'Formatting storage for broker 1...' &&
+        kafka-storage format -t $${CLUSTER_ID} -c /etc/kafka/kraft/server.properties &&
+        echo 'Starting Kafka broker 1...' &&
+        /etc/confluent/docker/run
+      "
+
+  # Broker 2
+  kafka-broker-2:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka-broker-2
+    container_name: kafka-broker-2
+    depends_on:
+      - kafka-controller
+    ports:
+      - "9094:9094"
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: 'broker'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-controller:9093'
+      # Removed CONTROLLER from listeners for broker
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_LISTENERS: 'INTERNAL://:29094,EXTERNAL://:9094'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka-broker-2:29094,EXTERNAL://localhost:9094'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-broker-logs'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    volumes:
+      - kafka-broker-2-data:/var/lib/kafka/data
+    command: >
+      bash -c "
+        echo 'Formatting storage for broker 2...' &&
+        kafka-storage format -t $${CLUSTER_ID} -c /etc/kafka/kraft/server.properties &&
+        echo 'Starting Kafka broker 2...' &&
+        /etc/confluent/docker/run
+      "
+
+  # Debezium Kafka Connect
+  kafka-connect:
+    image: debezium/connect:3.0.0.Final
+    hostname: kafka-connect
+    container_name: kafka-connect
+    depends_on:
+      - kafka-broker-1
+      - kafka-broker-2
+      - postgresql
+    ports:
+      - "8083:8083"
+    environment:
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect_configs
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_statuses
+      BOOTSTRAP_SERVERS: kafka-broker-1:29092,kafka-broker-2:29094
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+
+  # Kafka UI
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    hostname: kafka-ui
+    container_name: kafka-ui
+    depends_on:
+      - kafka-broker-1
+      - kafka-broker-2
+      - kafka-connect
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: kraft-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-broker-1:29092,kafka-broker-2:29094
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: debezium-connect
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kafka-connect:8083
+      SERVER_PORT: 8080
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - kafka-broker-1
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        # Wait for Kafka to be available
+        echo "Waiting for Kafka broker..."
+        cub kafka-ready -b kafka-broker-1:29092 1 20 || exit 1
+        
+        echo "======================================="
+        echo "About to create topic"
+        # Create topic(s)
+        kafka-topics --bootstrap-server kafka-broker-1:29092 --create --topic leaderboard --partitions 3 --replication-factor 1 || true
+    restart: "no"
+
+  postgresql:
+    image: docker.io/bitnami/postgresql:17.5.0
+    container_name: "postgresql"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./src/test/resources/:/docker-entrypoint-initdb.d
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_WAL_LEVEL=logical
+      - POSTGRESQL_USERNAME=user
+      - POSTGRESQL_PASSWORD=password
+      - POSTGRESQL_POSTGRES_PASSWORD=password
+      - POSTGRESQL_DATABASE=test
+      - ALLOW_EMPTY_PASSWORD=yes
+      - POSTGRESQL_MAX_CONNECTIONS=1000
+
+volumes:
+  kafka-controller-data:
+  kafka-broker-1-data:
+  kafka-broker-2-data:

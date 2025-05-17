@@ -1,0 +1,70 @@
+plugins {
+    id 'java'
+    id 'nu.studer.jooq' version '10.1'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.github.vivekkothari'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom 'com.linecorp.armeria:armeria-bom:1.32.5'
+    }
+}
+
+dependencies {
+    implementation 'com.linecorp.armeria:armeria'
+
+    implementation 'org.apache.kafka:kafka-clients:3.9.0'
+    implementation 'org.postgresql:postgresql:42.7.5'
+    implementation 'com.zaxxer:HikariCP:6.3.0'
+    jooqGenerator 'org.postgresql:postgresql:42.7.5'
+
+    // Logging
+    runtimeOnly 'ch.qos.logback:logback-classic:1.5.16'
+    runtimeOnly 'org.slf4j:log4j-over-slf4j:1.7.36'
+
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+jooq {
+    version = '3.20.4'
+    configurations {
+        main { // this name must match the sourceSet (usually 'main')
+            generationTool {
+                logging = org.jooq.meta.jaxb.Logging.WARN
+                jdbc {
+                    driver = 'org.postgresql.Driver'
+                    url = 'jdbc:postgresql://localhost:5432/test'
+                    user = 'user'
+                    password = 'password'
+                }
+                generator {
+                    name = 'org.jooq.codegen.DefaultGenerator'
+                    database {
+                        name = 'org.jooq.meta.postgres.PostgresDatabase'
+                        inputSchema = 'public'
+                    }
+                    generate {
+                        deprecated = false
+                        records = true
+                        fluentSetters = true
+                    }
+                    target {
+                        packageName = 'com.github.vivekkothari.jooq.generated'
+                    }
+                }
+            }
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
