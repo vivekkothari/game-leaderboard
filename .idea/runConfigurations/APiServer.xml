@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="APiServer" type="Application" factoryName="Application" nameIsGenerated="true">
+    <option name="MAIN_CLASS_NAME" value="com.github.vivekkothari.APiServer" />
+    <module name="game-leaderboard.main" />
+    <option name="VM_PARAMETERS" value="-javaagent:opentelemetry-javaagent.jar -Dotel.service.name=game-leaderboard -Dotel.exporter.otlp.endpoint=http://localhost:4318 -Dotel.instrumentation.kafka.producer-propagation.enabled=true -Dotel.instrumentation.kafka.experimental-span-attributes=true -Dotel.instrumentation.kafka.metric-reporter.enabled=true -Dotel.traces.exporter=otlp -Dotel.metrics.exporter=otlp -Dotel.logs.exporter=otlp" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="com.github.vivekkothari.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

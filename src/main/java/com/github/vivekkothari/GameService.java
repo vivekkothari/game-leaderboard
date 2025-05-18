@@ -20,8 +20,8 @@ public class GameService {
     this.calculator = calculator;
   }
 
-  public record Game(int id, int userId, long score, Instant attainedAt) {
-    Game(int userId, long score, Instant attainedAt) {
+  public record Game(int id, String userId, long score, Instant attainedAt) {
+    Game(String userId, long score, Instant attainedAt) {
       this(random.nextInt(0, Integer.MAX_VALUE), userId, score, attainedAt);
     }
   }
@@ -38,5 +38,10 @@ public class GameService {
   @Get("/top-scores")
   public HttpResponse getTopScores(@Param("limit") @Default("10") int limit) {
     return HttpResponse.ofJson(calculator.getTopUserMaxScores(limit));
+  }
+
+  @Get("/total-scores")
+  public HttpResponse getTotalTopScores(@Param("limit") @Default("10") int limit) {
+    return HttpResponse.ofJson(calculator.getTopUserTotalScores(limit));
   }
 }

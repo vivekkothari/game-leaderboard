@@ -14,11 +14,11 @@ fi
 # Run all requests in parallel
 for ((i=1; i<=NUM_REQUESTS; i++))
 do
-  USERID=$(( RANDOM % (USERID_TO - USERID_FROM + 1) + USERID_FROM ))
+  USERID=u-$(( RANDOM % (USERID_TO - USERID_FROM + 1) + USERID_FROM ))
   SCORE=$(( RANDOM % 100 + 1 ))
   ATTAINED_AT=$(date +%s.%N)
   JSON_PAYLOAD=$(jq -n \
-    --argjson userId "$USERID" \
+    --arg userId "$USERID" \
     --argjson score "$SCORE" \
     --arg attainedAt "$ATTAINED_AT" \
     '{userId: $userId, score: $score, attainedAt: ($attainedAt | tonumber)}')

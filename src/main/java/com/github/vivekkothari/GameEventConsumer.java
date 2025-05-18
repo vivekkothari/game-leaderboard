@@ -23,8 +23,8 @@ public class GameEventConsumer implements AutoCloseable {
           ImmutableMap.<String, Object>builder()
               .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS)
               .put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500)
-              .put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 10 * (int) 1e3) // 10kb
-              .put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 500)
+              .put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, (int) 1e6) // 1MB
+              .put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 50)
               .put(ConsumerConfig.GROUP_ID_CONFIG, "leaderboard-consumer-group")
               .put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName())
               .put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonRecordSerde.class.getName())

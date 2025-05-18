@@ -37,7 +37,7 @@ public class GameDao {
     dsl.batchInsert(records).execute();
   }
 
-  public Map<Integer, Double> getTopUserMaxScores(int limit) {
+  public Map<String, Double> getTopUserMaxScores(int limit) {
     return dsl.select(GAME.USER_ID, DSL.max(GAME.SCORE))
         .from(GAME)
         .groupBy(GAME.USER_ID)
