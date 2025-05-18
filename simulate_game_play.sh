@@ -11,28 +11,23 @@ if [ -z "$NUM_REQUESTS" ] || [ -z "$USERID_FROM" ] || [ -z "$USERID_TO" ]; then
   exit 1
 fi
 
+# Run all requests in parallel
 for ((i=1; i<=NUM_REQUESTS; i++))
 do
-  # Generate random userId in range
   USERID=$(( RANDOM % (USERID_TO - USERID_FROM + 1) + USERID_FROM ))
-
-  # Generate random score 1-100
   SCORE=$(( RANDOM % 100 + 1 ))
-
-  # Generate current timestamp with fractional seconds (epoch float)
   ATTAINED_AT=$(date +%s.%N)
-
-  # Compose JSON payload
   JSON_PAYLOAD=$(jq -n \
     --argjson userId "$USERID" \
     --argjson score "$SCORE" \
     --arg attainedAt "$ATTAINED_AT" \
     '{userId: $userId, score: $score, attainedAt: ($attainedAt | tonumber)}')
 
-  # Send POST request
   curl -s -XPOST -H 'content-type: application/json; charset=utf-8' \
     'http://localhost:4040/game' \
-    -d "$JSON_PAYLOAD"
+    -d "$JSON_PAYLOAD" &
 
   echo "  -> Fired request #$i: userId=$USERID, score=$SCORE, attainedAt=$ATTAINED_AT"
 done
+
+wait

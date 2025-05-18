@@ -37,6 +37,6 @@ public class GameService {
 
   @Get("/top-scores")
   public HttpResponse getTopScores(@Param("limit") @Default("10") int limit) {
-    return HttpResponse.ofJson(calculator.getTopUserTotalScores(limit));
+    return HttpResponse.ofJson(calculator.getTopUserMaxScores(limit));
   }
 }

@@ -171,6 +171,15 @@ services:
       - ALLOW_EMPTY_PASSWORD=yes
       - POSTGRESQL_MAX_CONNECTIONS=1000
 
+  redis:
+    image: docker.io/bitnami/redis:latest
+    container_name: "redis"
+    ports:
+      - "6379:6379"
+    environment:
+      - NODE_IP=127.0.0.1
+      - ALLOW_EMPTY_PASSWORD=yes
+
 volumes:
   kafka-controller-data:
   kafka-broker-1-data:

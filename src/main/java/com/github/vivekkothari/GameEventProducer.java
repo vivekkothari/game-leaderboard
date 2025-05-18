@@ -24,11 +24,11 @@ public class GameEventProducer implements AutoCloseable {
               .put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, "5000")
               .build());
 
-  private final String topic = "leaderboard";
+  static final String TOPIC = "leaderboard";
 
   public void publishScore(GameService.Game game) {
     producer.send(
-        new ProducerRecord<>(topic, UUID.randomUUID().toString(), game),
+        new ProducerRecord<>(TOPIC, UUID.randomUUID().toString(), game),
         (metadata, exception) -> {
           if (exception != null) {
             logger.error("Error sending message", exception);

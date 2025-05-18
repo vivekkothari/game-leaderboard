@@ -9,6 +9,8 @@ import com.linecorp.armeria.server.docs.DocService;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.Jedis;
 
 public class Main {
 
@@ -16,6 +18,9 @@ public class Main {
   private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
   private static final GameDao dao = new GameDao(JooqProvider.getDsl());
+  private static final Jedis jedis =
+      new Jedis("localhost", 6379, DefaultJedisClientConfig.builder().build());
+  private static final TopScoreCalculator calculator = new TopScoreCalculator(dao, jedis);
 
   public static void main(String[] args) throws JsonProcessingException {
     var gameEventProducer = gameEventProducer();
@@ -56,10 +61,10 @@ public class Main {
   }
 
   static GameEventConsumer gameEventConsumer() {
-    return new GameEventConsumer(dao);
+    return new GameEventConsumer(calculator);
   }
 
   static GameService gameService(GameEventProducer producer) {
-    return new GameService(producer, new TopScoreCalculator(dao));
+    return new GameService(producer, new TopScoreCalculator(dao, jedis));
   }
 }

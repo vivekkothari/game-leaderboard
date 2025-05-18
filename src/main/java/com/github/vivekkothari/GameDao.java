@@ -37,18 +37,18 @@ public class GameDao {
     dsl.batchInsert(records).execute();
   }
 
-  public Map<Integer, Long> getTopUserTotalScores(int limit) {
-    return dsl.select(GAME.USER_ID, DSL.sum(GAME.SCORE))
+  public Map<Integer, Double> getTopUserMaxScores(int limit) {
+    return dsl.select(GAME.USER_ID, DSL.max(GAME.SCORE))
         .from(GAME)
         .groupBy(GAME.USER_ID)
-        .orderBy(DSL.sum(GAME.SCORE).desc())
+        .orderBy(DSL.max(GAME.SCORE).desc())
         .limit(limit)
         .fetchStream()
         .collect(
             Collectors.toMap(
                 r -> r.get(GAME.USER_ID),
-                r -> r.get(DSL.sum(GAME.SCORE), Long.class),
-                (a, b) -> a, // merge function (won’t be used since keys are unique)
+                r -> r.get(DSL.max(GAME.SCORE), Long.class).doubleValue(),
+                (a, _) -> a, // merge function (won’t be used since keys are unique)
                 LinkedHashMap::new // preserve insertion order (descending score)
                 ));
   }

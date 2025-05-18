@@ -1,6 +1,7 @@
 package com.github.vivekkothari;
 
 import static com.github.vivekkothari.GameEventProducer.BOOTSTRAP_SERVERS;
+import static com.github.vivekkothari.GameEventProducer.TOPIC;
 
 import com.linecorp.armeria.internal.shaded.guava.collect.ImmutableMap;
 import java.time.Duration;
@@ -31,21 +32,21 @@ public class GameEventConsumer implements AutoCloseable {
               .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
               .put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false)
               .build());
-  private final GameDao dao;
+  private final TopScoreCalculator calculator;
 
   private volatile boolean closed = false;
 
-  public GameEventConsumer(GameDao dao) {
-    this.dao = dao;
+  public GameEventConsumer(TopScoreCalculator calculator) {
+    this.calculator = calculator;
   }
 
   public void startConsuming() {
-    consumer.subscribe(List.of("leaderboard"));
+    consumer.subscribe(List.of(TOPIC));
     while (!closed) {
       var records = consumer.poll(Duration.ofMillis(100));
       if (records.count() > 0) {
         logger.info("Received {} records", records.count());
-        dao.insertBatch(
+        calculator.insertGame(
             StreamSupport.stream(records.spliterator(), false).map(ConsumerRecord::value).toList());
       }
       consumer.commitAsync();
