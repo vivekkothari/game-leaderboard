@@ -22,8 +22,9 @@ public class GameEventConsumer implements AutoCloseable {
       new KafkaConsumer<>(
           ImmutableMap.<String, Object>builder()
               .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS)
-              .put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500)
+              .put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, ConsumerConfig.DEFAULT_MAX_POLL_RECORDS)
               .put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, (int) 1e6) // 1MB
+              .put(ConsumerConfig.FETCH_MAX_BYTES_CONFIG, (int) 1e7) // 10MB
               .put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 50)
               .put(ConsumerConfig.GROUP_ID_CONFIG, "leaderboard-consumer-group")
               .put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName())

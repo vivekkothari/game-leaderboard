@@ -1,7 +1,6 @@
 package com.github.vivekkothari;
 
 import com.linecorp.armeria.internal.shaded.guava.collect.ImmutableMap;
-import java.util.UUID;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
@@ -17,6 +16,13 @@ public class GameEventProducer implements AutoCloseable {
       new KafkaProducer<>(
           ImmutableMap.<String, Object>builder()
               .put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS)
+              .put(ProducerConfig.BATCH_SIZE_CONFIG, 65536)
+              .put(ProducerConfig.LINGER_MS_CONFIG, 10)
+              .put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4")
+              .put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1)
+              // idempotence is very important to retain message ordering
+              .put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true)
+              .put(ProducerConfig.RETRIES_CONFIG, 3)
               .put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class)
               .put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonRecordSerde.class)
               .put("json.serde.target.class", GameService.Game.class.getName())
@@ -28,7 +34,7 @@ public class GameEventProducer implements AutoCloseable {
 
   public void publishScore(GameService.Game game) {
     producer.send(
-        new ProducerRecord<>(TOPIC, UUID.randomUUID().toString(), game),
+        new ProducerRecord<>(TOPIC, game.userId(), game),
         (metadata, exception) -> {
           if (exception != null) {
             logger.error("Error sending message", exception);

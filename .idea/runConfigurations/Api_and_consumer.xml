@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Api and consumer" type="CompoundRunConfigurationType">
+    <toRun name="APiServer" type="Application" />
+    <toRun name="KafkaConsumer" type="Application" />
+    <method v="2" />
+  </configuration>
+</component>
