@@ -185,6 +185,7 @@ services:
     image: curlimages/curl:8.5.0
     depends_on:
       - kafka-connect
+#message.key.columns: Make sure we use user_id as key when sending data to kafka topic
     entrypoint:
       - /bin/sh
       - -c
@@ -218,8 +219,7 @@ services:
                 "key.converter": "org.apache.kafka.connect.json.JsonConverter",
                 "key.converter.schemas.enable": "false",
                 "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-                "value.converter.schemas.enable": "false",
-                #Make sure we use user_id as key when sending data to kafka topic 
+                "value.converter.schemas.enable": "false", 
                 "message.key.columns": "public.game:user_id"
             }
         }'
