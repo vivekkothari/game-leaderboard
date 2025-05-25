@@ -11,7 +11,9 @@ import com.linecorp.armeria.internal.common.JacksonUtil;
 import com.linecorp.armeria.internal.shaded.guava.collect.ImmutableMap;
 import java.time.Duration;
 import java.util.List;
+import java.util.stream.StreamSupport;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -60,19 +62,26 @@ public class GameCdcConsumer implements AutoCloseable {
       ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
       if (!records.isEmpty()) {
         logger.info("Received {} CDC records", records.count());
-        records.forEach(
-            record -> {
-              try {
-                Payload<GameService.Game> event =
-                    objectMapper.readValue(record.value(), new TypeReference<>() {});
-                logger.info("Processing CDC event: {}", event);
-                calculator.insertGame(List.of(event.after()));
-                consumer.commitSync();
-              } catch (JsonProcessingException e) {
-                logger.error("Error processing CDC event", e);
-              }
-            });
+        try {
+          calculator.insertGame(
+              StreamSupport.stream(records.spliterator(), false)
+                  .map(ConsumerRecord::value)
+                  .map(GameCdcConsumer::toPayload)
+                  .map(Payload::after)
+                  .toList());
+          consumer.commitSync();
+        } catch (Exception e) {
+          logger.error("Error processing CDC records", e);
+        }
       }
+    }
+  }
+
+  private static Payload<GameService.Game> toPayload(String value) {
+    try {
+      return objectMapper.readValue(value, new TypeReference<>() {});
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -82,18 +91,7 @@ public class GameCdcConsumer implements AutoCloseable {
     consumer.close();
   }
 
-  record DebeziumChangeEvent<T>(Payload<T> payload) {}
-
   record Payload<T>(String op, T before, T after, DebeziumSource source) {}
 
   record DebeziumSource(String db, String schema, String table) {}
 }
-
-/*
-kafka-consumer-groups \
-  --bootstrap-server kafka-broker-1:9092 \
-  --group game-cdc-group \
-  --topic test.public.game \
-  --reset-offsets --to-earliest --execute
-
- */
