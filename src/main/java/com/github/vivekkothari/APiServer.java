@@ -2,6 +2,8 @@ package com.github.vivekkothari;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.vivekkothari.redis.RedisClient;
+import com.github.vivekkothari.redis.RedisConfig;
 import com.linecorp.armeria.common.HttpResponse;
 import com.linecorp.armeria.internal.common.JacksonUtil;
 import com.linecorp.armeria.server.Server;
@@ -9,17 +11,14 @@ import com.linecorp.armeria.server.docs.DocService;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.DefaultJedisClientConfig;
-import redis.clients.jedis.Jedis;
 
 public class APiServer {
 
   private static final ObjectMapper mapper = JacksonUtil.newDefaultObjectMapper();
   private static final Logger logger = LoggerFactory.getLogger(APiServer.class);
 
-  private static final GameDao dao = new GameDao(JooqProvider.getDsl());
-  private static final Jedis jedis =
-      new Jedis("localhost", 6379, DefaultJedisClientConfig.builder().build());
+  private static final RedisClient redisClient =
+      new RedisClient(new RedisConfig().setUrl("redis://127.0.0.1:6379"));
 
   public static void main(String[] args) throws JsonProcessingException {
     var gameEventProducer = gameEventProducer();
@@ -39,7 +38,11 @@ public class APiServer {
                     .build())
             .build();
 
-    server.closeOnJvmShutdown(gameEventProducer::close);
+    server.closeOnJvmShutdown(
+        () -> {
+          redisClient.close();
+          gameEventProducer.close();
+        });
 
     server.start().join();
 
@@ -53,6 +56,6 @@ public class APiServer {
   }
 
   static GameService gameService(GameEventProducer producer) {
-    return new GameService(producer, new TopScoreCalculator(dao, jedis));
+    return new GameService(producer, new TopScoreCalculator(redisClient));
   }
 }

@@ -1,11 +1,11 @@
 package com.github.vivekkothari;
 
+import com.github.vivekkothari.redis.RedisClient;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import redis.clients.jedis.Jedis;
 import redis.clients.jedis.resps.Tuple;
 
 public class TopScoreCalculator {
@@ -30,19 +30,20 @@ public class TopScoreCalculator {
     return true
   """;
 
-  private final GameDao dao;
-  private final Jedis jedis;
+  private final RedisClient redisClient;
 
-  public TopScoreCalculator(GameDao dao, Jedis jedis) {
-    this.dao = dao;
-    this.jedis = jedis;
+  public TopScoreCalculator(RedisClient redisClient) {
+    this.redisClient = redisClient;
   }
 
   public void insertGame(List<GameService.Game> games) {
-    dao.insertBatch(games);
     for (GameService.Game g : games) {
-      jedis.eval(
-          MAX_SCORE_SCRIPT, List.of("top100"), List.of(g.userId(), String.valueOf(g.score())));
+      redisClient.use(
+          jedis ->
+              jedis.eval(
+                  MAX_SCORE_SCRIPT,
+                  List.of("top100"),
+                  List.of(g.userId(), String.valueOf(g.score()))));
     }
     // Build ARGV: userId1, score1, userId2, score2, ...
     List<String> args = new ArrayList<>();
@@ -50,11 +51,12 @@ public class TopScoreCalculator {
       args.add(g.userId());
       args.add(String.valueOf(g.score()));
     }
-    jedis.eval(TOTAL_SCORE_SCRIPT, List.of("totalTop100"), args);
+    redisClient.use(jedis -> jedis.eval(TOTAL_SCORE_SCRIPT, List.of("totalTop100"), args));
   }
 
   public Map<String, Double> getTopUserMaxScores(int limit) {
-    List<Tuple> topScores = jedis.zrevrangeWithScores("top100", 0, limit);
+    List<Tuple> topScores =
+        redisClient.with(jedis -> jedis.zrevrangeWithScores("top100", 0, limit));
     return topScores.stream()
         .collect(
             Collectors.toMap(
@@ -66,7 +68,8 @@ public class TopScoreCalculator {
   }
 
   public Map<String, Double> getTopUserTotalScores(int limit) {
-    List<Tuple> topScores = jedis.zrevrangeWithScores("totalTop100", 0, limit);
+    List<Tuple> topScores =
+        redisClient.with(jedis -> jedis.zrevrangeWithScores("totalTop100", 0, limit));
     return topScores.stream()
         .collect(
             Collectors.toMap(

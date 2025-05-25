@@ -150,7 +150,7 @@ services:
         echo "About to create topic"
         # Create topic(s)
         kafka-topics --bootstrap-server kafka-broker-1:29092 --create --topic leaderboard --partitions 3 --replication-factor 1 || true
-        kafka-topics --bootstrap-server kafka-broker-1:29092 --create --topic leaderboard-cdc --partitions 3 --replication-factor 1 || true
+        kafka-topics --bootstrap-server kafka-broker-1:29092 --create --topic test.public.game --partitions 3 --replication-factor 1 || true
     restart: "no"
 
   postgresql:
@@ -180,6 +180,48 @@ services:
     environment:
       - NODE_IP=127.0.0.1
       - ALLOW_EMPTY_PASSWORD=yes
+
+  debezium-init:
+    image: curlimages/curl:8.5.0
+    depends_on:
+      - kafka-connect
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        echo "Waiting for Kafka Connect..."
+        sleep 10
+        echo "Registering Debezium connector..."
+        curl -i -X POST http://kafka-connect:8083/connectors \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "name": "debezium-postgres-connector",
+            "config": {
+                "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+                "database.hostname": "postgresql",
+                "database.port": "5432",
+                "database.user": "postgres",
+                "database.password": "password",
+                "database.dbname": "test",
+                "plugin.name": "pgoutput",
+                "slot.name": "debezium_slot",
+                "publication.autocreate.mode": "all_tables",
+                "publication.name": "dbz_publication",
+                "database.history.kafka.bootstrap.servers": "kafka-broker-1:29092",
+                "database.history.kafka.topic": "schema-changes.test",
+                "topic.prefix": "test",
+                "replica.identity.autoset.values": "public.game:FULL",
+                "tombstones.on.delete": "true",
+                "insert.values.enabled": true,
+                "skipped.operations": "none",
+                "table.include.list": "public.game",
+                "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+                "key.converter.schemas.enable": "false",
+                "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+                "value.converter.schemas.enable": "false"
+            }
+        }'
+    restart: "no"
 
 volumes:
   kafka-controller-data:
