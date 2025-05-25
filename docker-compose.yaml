@@ -218,7 +218,9 @@ services:
                 "key.converter": "org.apache.kafka.connect.json.JsonConverter",
                 "key.converter.schemas.enable": "false",
                 "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-                "value.converter.schemas.enable": "false"
+                "value.converter.schemas.enable": "false",
+                #Make sure we use user_id as key when sending data to kafka topic 
+                "message.key.columns": "public.game:user_id"
             }
         }'
     restart: "no"
