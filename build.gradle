@@ -27,7 +27,7 @@ dependencies {
     jooqGenerator 'org.postgresql:postgresql:42.7.5'
 
     // Logging
-    runtimeOnly 'ch.qos.logback:logback-classic:1.5.16'
+    runtimeOnly 'ch.qos.logback:logback-classic:1.5.18'
     runtimeOnly 'org.slf4j:log4j-over-slf4j:1.7.36'
 
     testImplementation platform('org.junit:junit-bom:5.10.0')
