@@ -150,6 +150,7 @@ services:
         echo "About to create topic"
         # Create topic(s)
         kafka-topics --bootstrap-server kafka-broker-1:29092 --create --topic leaderboard --partitions 3 --replication-factor 1 || true
+        kafka-topics --bootstrap-server kafka-broker-1:29092 --create --topic leaderboard-cdc --partitions 3 --replication-factor 1 || true
     restart: "no"
 
   postgresql:
