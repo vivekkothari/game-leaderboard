@@ -154,7 +154,7 @@ services:
     restart: "no"
 
   postgresql:
-    image: docker.io/bitnami/postgresql:17.5.0
+    image: docker.io/bitnami/postgresql:17.6.0
     container_name: "postgresql"
     ports:
       - "5432:5432"
