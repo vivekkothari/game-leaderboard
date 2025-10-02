@@ -30,7 +30,7 @@ dependencies {
     runtimeOnly 'ch.qos.logback:logback-classic:1.5.18'
     runtimeOnly 'org.slf4j:log4j-over-slf4j:2.0.17'
 
-    testImplementation platform('org.junit:junit-bom:5.13.1')
+    testImplementation platform('org.junit:junit-bom:5.13.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
