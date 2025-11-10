@@ -182,7 +182,7 @@ services:
       - ALLOW_EMPTY_PASSWORD=yes
 
   debezium-init:
-    image: curlimages/curl:8.16.0
+    image: curlimages/curl:8.17.0
     depends_on:
       - kafka-connect
 #message.key.columns: Make sure we use user_id as key when sending data to kafka topic
